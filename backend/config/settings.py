@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'accounts.apps.AccountsConfig',
+    'hotels.apps.HotelsConfig',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
