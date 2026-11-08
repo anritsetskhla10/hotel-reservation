@@ -10,8 +10,23 @@ class CityAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+class RoomInline(admin.StackedInline):
+    model = Room
+    extra = 0
+    show_change_link = True
+
+    fields = (
+        ('room_number', 'name'),
+        ('room_type', 'capacity', 'price_per_night'),
+        'description',
+        'photo',
+        ('is_featured', 'is_active'),
+    )
+
+
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
+    inlines = (RoomInline,)
     list_display = ('id', 'name', 'city', 'is_active')
     list_filter = ('city', 'is_active')
     search_fields = ('name', 'address', 'city__name')
