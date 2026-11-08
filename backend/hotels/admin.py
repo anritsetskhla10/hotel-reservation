@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import City, Hotel
+from .models import City, Hotel, Room
 from django.utils.html import format_html
 
 
@@ -35,5 +35,59 @@ class HotelAdmin(admin.ModelAdmin):
 
         return format_html(
             '<img src="{}" style="max-width: 300px; max-height: 200px;" alt="სასტუმროს ფოტო">',
+            obj.photo.url,
+        )
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+    list_display = (
+        'room_number',
+        'name',
+        'hotel',
+        'room_type',
+        'price_per_night',
+        'capacity',
+        'is_featured',
+        'is_active',
+    )
+    list_filter = (
+        'hotel__city',
+        'hotel',
+        'room_type',
+        'is_featured',
+        'is_active',
+    )
+    search_fields = ('room_number', 'name', 'hotel__name')
+    list_select_related = ('hotel',)
+    readonly_fields = ('photo_preview',)
+
+    fieldsets = (
+        ('ძირითადი ინფორმაცია', {
+            'fields': (
+                'hotel',
+                'room_number',
+                'name',
+                'room_type',
+                'description',
+            ),
+        }),
+        ('ფასი და ტევადობა', {
+            'fields': ('price_per_night', 'capacity'),
+        }),
+        ('ფოტო', {
+            'fields': ('photo', 'photo_preview'),
+        }),
+        ('სტატუსი', {
+            'fields': ('is_featured', 'is_active'),
+        }),
+    )
+
+    @admin.display(description='ფოტოს წინასწარი ხედი')
+    def photo_preview(self, obj):
+        if not obj or not obj.photo:
+            return 'ფოტო ჯერ არ არის ატვირთული'
+
+        return format_html(
+            '<img src="{}" style="max-width: 300px; max-height: 200px;" alt="ნომრის ფოტო">',
             obj.photo.url,
         )
