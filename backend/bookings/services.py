@@ -27,13 +27,16 @@ def validate_booking_dates(check_in, check_out):
     return (check_out - check_in).days
 
 
-def has_booking_overlap(room, check_in, check_out):
+def overlapping_bookings(check_in, check_out):
     return Booking.objects.filter(
-        room=room,
         status=Booking.Status.CONFIRMED,
         check_in__lt=check_out,
         check_out__gt=check_in,
-    ).exists()
+    )
+
+
+def has_booking_overlap(room, check_in, check_out):
+    return overlapping_bookings(check_in, check_out).filter(room=room).exists()
 
 
 @transaction.atomic
