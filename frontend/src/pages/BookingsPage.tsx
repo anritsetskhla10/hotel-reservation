@@ -48,7 +48,7 @@ export default function BookingsPage() {
 
       {bookings && bookings.length > 0 && (
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-190 text-left text-sm">
             <thead className="bg-stone-100">
               <tr>
                 {columns.map((column) => (
