@@ -1,6 +1,6 @@
 from django import forms
 
-from hotels.models import Room
+from hotels.models import Hotel, Room
 
 from .models import Booking
 
@@ -16,6 +16,7 @@ class BookingCreateForm(forms.ModelForm):
         queryset=Room.objects.filter(
             is_active=True,
             hotel__is_active=True,
+            hotel__publication_status=Hotel.PublicationStatus.PUBLISHED,
         ).select_related('hotel'),
     )
 

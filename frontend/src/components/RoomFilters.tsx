@@ -1,13 +1,26 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-const inputClass = 'w-full rounded-lg border border-stone-300 bg-white px-3 py-2'
+import type { RoomType } from '../types/api'
+
+const inputClass = 'w-full min-w-0 rounded-md border border-stone-300 bg-white px-2.5 py-2'
+
+const roomTypes: Record<RoomType, string> = {
+  single: 'ერთადგილიანი',
+  double: 'ორადგილიანი ორმაგი საწოლით',
+  twin: 'ორადგილიანი ცალკე საწოლებით',
+  triple: 'სამადგილიანი',
+  family: 'საოჯახო',
+  deluxe: 'დელუქსი',
+  other: 'სხვა',
+}
 
 const fields = [
-  { name: 'min_price', label: 'მინ. ფასი (₾)', type: 'number' },
-  { name: 'max_price', label: 'მაქს. ფასი (₾)', type: 'number' },
-  { name: 'check_in', label: 'შესვლა', type: 'date' },
-  { name: 'check_out', label: 'გასვლა', type: 'date' },
+  { name: 'guests', label: 'სტუმრების რაოდენობა', type: 'number', min: '1', step: '1' },
+  { name: 'min_price', label: 'მინ. ფასი (₾)', type: 'number', min: '0', step: '0.01' },
+  { name: 'max_price', label: 'მაქს. ფასი (₾)', type: 'number', min: '0', step: '0.01' },
+  { name: 'check_in', label: 'შესვლა', type: 'date', min: undefined, step: undefined },
+  { name: 'check_out', label: 'გასვლა', type: 'date', min: undefined, step: undefined },
 ] as const
 
 export default function RoomFilters() {
@@ -17,7 +30,7 @@ export default function RoomFilters() {
 
   return (
     <form
-      className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
 
@@ -56,31 +69,41 @@ export default function RoomFilters() {
         setSearchParams(hotelId ? { hotel: hotelId } : {})
       }}
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <label className="space-y-1 text-sm">
           <span>ნომრის ტიპი</span>
           <select name="room_type" className={inputClass}
             defaultValue={searchParams.get('room_type') ?? ''}>
             <option value="">ყველა ტიპი</option>
-            <option value="single">ერთადგილიანი</option>
-            <option value="double">ორადგილიანი</option>
-            <option value="deluxe">დელუქსი</option>
+            {Object.entries(roomTypes).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </label>
 
-        {fields.map(({ name, label, type }) => (
+        {fields.map(({ name, label, type, min, step }) => (
           <label key={name} className="space-y-1 text-sm">
             <span>{label}</span>
             <input
               className={inputClass}
               name={name}
               type={type}
-              min={type === 'number' ? '0' : undefined}
-              step={type === 'number' ? '0.01' : undefined}
+              min={min}
+              step={step}
               defaultValue={searchParams.get(name) ?? ''}
             />
           </label>
         ))}
+
+        <label className="space-y-1 text-sm">
+          <span>დალაგება</span>
+          <select name="sort" className={inputClass}
+            defaultValue={searchParams.get('sort') ?? ''}>
+            <option value="">ნაგულისხმევი რიგი</option>
+            <option value="price_asc">ჯერ იაფი ნომრები</option>
+            <option value="price_desc">ჯერ ძვირი ნომრები</option>
+          </select>
+        </label>
 
         <label className="space-y-1 text-sm">
           <span>გამორჩეული ნომრები</span>

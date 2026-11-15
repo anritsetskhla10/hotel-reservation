@@ -4,7 +4,9 @@ from django.db import models
 
 class Booking(models.Model):
     class Status(models.TextChoices):
+        PENDING = 'pending', 'მოლოდინში'
         CONFIRMED = 'confirmed', 'დადასტურებული'
+        REJECTED = 'rejected', 'უარყოფილი'
         CANCELLED = 'cancelled', 'გაუქმებული'
 
     user = models.ForeignKey(
@@ -65,7 +67,7 @@ class Booking(models.Model):
             models.CheckConstraint(
                 condition=(
                     models.Q(
-                        status='confirmed',
+                        status__in=('pending', 'confirmed', 'rejected'),
                         cancelled_at__isnull=True,
                     )
                     | models.Q(

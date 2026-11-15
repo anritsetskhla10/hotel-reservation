@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from decimal import Decimal
 
-from .models import City, Hotel, Room
+from .models import City, Hotel, HotelPhoto, Room, RoomPhoto
 from bookings.services import validate_booking_dates
 
 
@@ -48,8 +48,39 @@ class RoomSerializer(serializers.ModelSerializer):
         )
 
 
+class HotelPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelPhoto
+        fields = ('id', 'image', 'caption')
+
+
+class RoomPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomPhoto
+        fields = ('id', 'image', 'caption')
+
+
+class HotelDetailSerializer(HotelSerializer):
+    gallery = HotelPhotoSerializer(many=True, read_only=True)
+
+    class Meta(HotelSerializer.Meta):
+        fields = HotelSerializer.Meta.fields + ('gallery',)
+
+
+class RoomDetailSerializer(RoomSerializer):
+    gallery = RoomPhotoSerializer(many=True, read_only=True)
+
+    class Meta(RoomSerializer.Meta):
+        fields = RoomSerializer.Meta.fields + ('gallery',)
+
+
 class RoomListFilters(serializers.Serializer):
+    sort = serializers.ChoiceField(
+        choices=('price_asc', 'price_desc'),
+        required=False,
+    )
     hotel = serializers.IntegerField(required=False, min_value=1)
+    guests = serializers.IntegerField(required=False, min_value=1)
     room_type = serializers.ChoiceField(
         choices=Room.RoomType.choices,
         required=False,

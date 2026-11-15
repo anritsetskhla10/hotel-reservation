@@ -17,6 +17,9 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         <h2 className="text-xl font-semibold">{hotel.name}</h2>
         <p className="text-sm text-stone-600">{hotel.address}</p>
         <p className="line-clamp-3 text-sm leading-relaxed">{hotel.description}</p>
+        <Link to={`/hotels/${hotel.id}`} className="mr-3 text-sm font-medium text-brand underline">
+          დეტალები და ფოტოები
+        </Link>
         <Link
             to={`/rooms?hotel=${hotel.id}`}
             className="mt-2 inline-flex rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover"

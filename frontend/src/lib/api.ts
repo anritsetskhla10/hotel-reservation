@@ -11,17 +11,26 @@ export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T>
   return response.json()
 }
 
-export async function postWithCsrf(path: string, data: object): Promise<Response> {
+export function postWithCsrf(path: string, data: object): Promise<Response> {
+  return sendWithCsrf(path, 'POST', data)
+}
+
+export async function sendWithCsrf(
+  path: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  data?: object,
+): Promise<Response> {
   const { csrfToken } = await getJson<{ csrfToken: string }>('/api/auth/csrf/')
+  const isFormData = data instanceof FormData
 
   return fetch(path, {
-    method: 'POST',
+    method,
     credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
-      'Content-Type': 'application/json',
+      ...(data !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       'X-CSRFToken': csrfToken,
     },
-    body: JSON.stringify(data),
+    body: isFormData ? data : JSON.stringify(data) ?? null,
   })
 }

@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -16,6 +18,19 @@ class City(models.Model):
 
 
 class Hotel(models.Model):
+    class PublicationStatus(models.TextChoices):
+        PENDING = 'pending', 'განხილვის მოლოდინში'
+        PUBLISHED = 'published', 'გამოქვეყნებული'
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='owned_hotels',
+        null=True,
+        blank=True,
+        limit_choices_to={'is_staff': False},
+        verbose_name='მფლობელი',
+    )
     city = models.ForeignKey(
         City,
         on_delete=models.PROTECT,
@@ -26,6 +41,12 @@ class Hotel(models.Model):
     address = models.CharField(max_length=255)
     photo = models.ImageField(upload_to='hotels/')
     is_active = models.BooleanField(default=True)
+    publication_status = models.CharField(
+        max_length=9,
+        choices=PublicationStatus.choices,
+        default=PublicationStatus.PENDING,
+        verbose_name='გამოქვეყნების სტატუსი',
+    )
 
     class Meta:
         ordering = ['name']
@@ -39,8 +60,23 @@ class Hotel(models.Model):
 class Room(models.Model):
     class RoomType(models.TextChoices):
         SINGLE = 'single', 'ერთადგილიანი'
-        DOUBLE = 'double', 'ორადგილიანი'
+        DOUBLE = 'double', 'ორადგილიანი ორმაგი საწოლით'
+        TWIN = 'twin', 'ორადგილიანი ცალკე საწოლებით'
+        TRIPLE = 'triple', 'სამადგილიანი'
+        FAMILY = 'family', 'საოჯახო'
         DELUXE = 'deluxe', 'დელუქსი'
+        OTHER = 'other', 'სხვა'
+
+    FIXED_CAPACITIES = {
+        RoomType.SINGLE: 1,
+        RoomType.DOUBLE: 2,
+        RoomType.TWIN: 2,
+        RoomType.TRIPLE: 3,
+    }
+    DEFAULT_CAPACITIES = {
+        RoomType.FAMILY: 4,
+        RoomType.DELUXE: 2,
+    }
 
     hotel = models.ForeignKey(
         Hotel,
@@ -86,5 +122,43 @@ class Room(models.Model):
             ),
         ]
 
+    def clean(self):
+        super().clean()
+        fixed_capacity = self.FIXED_CAPACITIES.get(self.room_type)
+        if fixed_capacity is not None and self.capacity != fixed_capacity:
+            raise ValidationError({
+                'capacity': f'ამ ტიპის ნომრის ტევადობა უნდა იყოს {fixed_capacity}.',
+            })
+
     def __str__(self):
         return f'{self.name} — №{self.room_number}'
+
+
+class HotelPhoto(models.Model):
+    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name='gallery')
+    image = models.ImageField('ფოტო', upload_to='hotels/gallery/')
+    caption = models.CharField('აღწერა', max_length=200, blank=True)
+    position = models.PositiveIntegerField('რიგითობა', default=0)
+
+    class Meta:
+        ordering = ['position', 'pk']
+        verbose_name = 'სასტუმროს დამატებითი ფოტო'
+        verbose_name_plural = 'სასტუმროს გალერეა'
+
+    def __str__(self):
+        return self.caption or self.image.name
+
+
+class RoomPhoto(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='gallery')
+    image = models.ImageField('ფოტო', upload_to='rooms/gallery/')
+    caption = models.CharField('აღწერა', max_length=200, blank=True)
+    position = models.PositiveIntegerField('რიგითობა', default=0)
+
+    class Meta:
+        ordering = ['position', 'pk']
+        verbose_name = 'ნომრის დამატებითი ფოტო'
+        verbose_name_plural = 'ნომრის გალერეა'
+
+    def __str__(self):
+        return self.caption or self.image.name

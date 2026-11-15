@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import HotelCard from '../components/HotelCard'
+import FilterSidebar from '../components/FilterSidebar'
 import { getJson } from '../lib/api'
 import type { City, Hotel } from '../types/api'
 
@@ -28,7 +29,7 @@ function HotelResults({ cityId }: { cityId: string }) {
   if (hotels.length === 0) return <p>სასტუმროები ვერ მოიძებნა.</p>
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
       {hotels.map((hotel) => <HotelCard key={hotel.id} hotel={hotel} />)}
     </div>
   )
@@ -55,30 +56,32 @@ export default function HotelsPage() {
   }, [])
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl font-semibold">სასტუმროები</h1>
-
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          ქალაქი
-          <select
-            className="rounded-lg border border-stone-300 bg-white px-3 py-2"
-            value={cityId}
-            onChange={(event) => {
-              const value = event.target.value
-              setSearchParams(value ? { city: value } : {})
-            }}
-          >
-            <option value="">ყველა ქალაქი</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.id}>{city.name}</option>
-            ))}
-          </select>
-        </label>
+    <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-semibold">სასტუმროები</h1>
+      <div className="grid items-start gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8">
+        <FilterSidebar>
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            ქალაქი
+            <select
+              className="rounded-lg border border-stone-300 bg-white px-3 py-2"
+              value={cityId}
+              onChange={(event) => {
+                const value = event.target.value
+                setSearchParams(value ? { city: value } : {})
+              }}
+            >
+              <option value="">ყველა ქალაქი</option>
+              {cities.map((city) => (
+                <option key={city.id} value={city.id}>{city.name}</option>
+              ))}
+            </select>
+          </label>
+          {cityError && <p role="alert" className="mt-2 text-sm text-red-700">{cityError}</p>}
+        </FilterSidebar>
+        <section className="min-w-0" aria-label="სასტუმროების შედეგები">
+          <HotelResults key={cityId} cityId={cityId} />
+        </section>
       </div>
-
-      {cityError && <p role="alert">{cityError}</p>}
-      <HotelResults key={cityId} cityId={cityId} />
     </main>
   )
 }

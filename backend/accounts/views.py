@@ -8,14 +8,15 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import authenticate, login, logout
 
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import JSONParser
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
+from .permissions import IsSiteUser
 from .serializers import LoginSerializer, RegisterSerializer
 
 
@@ -64,6 +65,12 @@ class LoginView(APIView):
                 'detail': 'მომხმარებლის სახელი ან პაროლი არასწორია.'
             })
 
+        if user.is_staff:
+            raise PermissionDenied({
+                'code': 'admin_only',
+                'detail': IsSiteUser.message,
+            })
+
         login(request, user)
 
         return Response({
@@ -74,7 +81,7 @@ class LoginView(APIView):
 
 class MeView(APIView):
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSiteUser]
 
     def get(self, request):
         user = request.user
@@ -90,7 +97,7 @@ class MeView(APIView):
 
 class LogoutView(APIView):
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSiteUser]
 
     def post(self, request):
         logout(request)

@@ -3,7 +3,10 @@ from rest_framework.permissions import AllowAny
 from django.db.models import Exists, OuterRef
 
 from .models import City, Hotel, Room
-from .serializers import CitySerializer, HotelListFilters, HotelSerializer, RoomListFilters, RoomSerializer
+from .serializers import (
+    CitySerializer, HotelDetailSerializer, HotelListFilters, HotelSerializer,
+    RoomDetailSerializer, RoomListFilters, RoomSerializer,
+)
 from bookings.services import overlapping_bookings
 
 
@@ -23,7 +26,10 @@ class HotelListView(ListAPIView):
         filters = HotelListFilters(data=self.request.query_params)
         filters.is_valid(raise_exception=True)
 
-        hotels = Hotel.objects.filter(is_active=True).select_related('city')
+        hotels = Hotel.objects.filter(
+            is_active=True,
+            publication_status=Hotel.PublicationStatus.PUBLISHED,
+        ).select_related('city')
         city_id = filters.validated_data.get('city')
 
         if city_id is not None:
@@ -34,8 +40,11 @@ class HotelListView(ListAPIView):
 class HotelDetailView(RetrieveAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
-    queryset = Hotel.objects.filter(is_active=True).select_related('city')
-    serializer_class = HotelSerializer
+    queryset = Hotel.objects.filter(
+        is_active=True,
+        publication_status=Hotel.PublicationStatus.PUBLISHED,
+    ).select_related('city').prefetch_related('gallery')
+    serializer_class = HotelDetailSerializer
 
 class RoomListView(ListAPIView):
     authentication_classes = []
@@ -50,6 +59,7 @@ class RoomListView(ListAPIView):
         rooms = Room.objects.filter(
             is_active=True,
             hotel__is_active=True,
+            hotel__publication_status=Hotel.PublicationStatus.PUBLISHED,
         ).select_related('hotel__city')
 
         if 'hotel' in values:
@@ -57,6 +67,9 @@ class RoomListView(ListAPIView):
 
         if 'room_type' in values:
             rooms = rooms.filter(room_type=values['room_type'])
+
+        if 'guests' in values:
+            rooms = rooms.filter(capacity__gte=values['guests'])
 
         if 'min_price' in values:
             rooms = rooms.filter(price_per_night__gte=values['min_price'])
@@ -75,6 +88,11 @@ class RoomListView(ListAPIView):
 
             rooms = rooms.filter(~Exists(overlapping))
 
+        sort = values.get('sort')
+        if sort == 'price_asc':
+            return rooms.order_by('price_per_night', 'pk')
+        if sort == 'price_desc':
+            return rooms.order_by('-price_per_night', 'pk')
         return rooms
 
 class RoomDetailView(RetrieveAPIView):
@@ -83,5 +101,6 @@ class RoomDetailView(RetrieveAPIView):
     queryset = Room.objects.filter(
         is_active=True,
         hotel__is_active=True,
-    ).select_related('hotel__city')
-    serializer_class = RoomSerializer
+        hotel__publication_status=Hotel.PublicationStatus.PUBLISHED,
+    ).select_related('hotel__city').prefetch_related('gallery')
+    serializer_class = RoomDetailSerializer

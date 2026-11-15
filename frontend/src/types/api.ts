@@ -12,6 +12,8 @@ export type Hotel = {
   city: City
 }
 
+export type RoomType = 'single' | 'double' | 'twin' | 'triple' | 'family' | 'deluxe' | 'other'
+
 export type Room = {
   id: number
   hotel: number
@@ -19,7 +21,7 @@ export type Room = {
   city: City
   room_number: string
   name: string
-  room_type: 'single' | 'double' | 'deluxe'
+  room_type: RoomType
   room_type_display: string
   description: string
   price_per_night: string
@@ -27,6 +29,15 @@ export type Room = {
   photo: string | null
   is_featured: boolean
 }
+
+export type GalleryPhoto = {
+  id: number
+  image: string
+  caption: string
+}
+
+export type HotelDetail = Hotel & { gallery: GalleryPhoto[] }
+export type RoomDetail = Room & { gallery: GalleryPhoto[] }
 
 export type Booking = {
   id: number
@@ -41,6 +52,6 @@ export type Booking = {
   check_out: string
   price_per_night: string
   total_price: string
-  status: 'confirmed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled'
   status_display: string
 }

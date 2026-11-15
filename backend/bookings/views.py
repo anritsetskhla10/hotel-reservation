@@ -2,28 +2,30 @@ from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.generics import GenericAPIView, ListCreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.generics import GenericAPIView, ListAPIView, ListCreateAPIView
 from rest_framework.response import Response
+
+from accounts.permissions import IsSiteUser
 
 from .models import Booking
 from .serializers import BookingCreateSerializer, BookingListFilters, BookingSerializer
-from .services import cancel_booking, create_booking
+from .services import (
+    BookingConflict, OwnHotelBookingDenied, cancel_booking, create_booking,
+    decide_booking,
+)
 
 
 
 class BookingListCreateView(ListCreateAPIView):
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSiteUser]
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        bookings = Booking.objects.select_related('room__hotel__city')
-
-        if not (user.is_staff and user.has_perm('bookings.view_booking')):
-            bookings = bookings.filter(user=user)
+        bookings = Booking.objects.filter(
+            user=self.request.user,
+        ).select_related('room__hotel__city')
 
         filters = BookingListFilters(data=self.request.query_params.dict())
         filters.is_valid(raise_exception=True)
@@ -47,8 +49,14 @@ class BookingListCreateView(ListCreateAPIView):
         try:
             booking = create_booking(
                 user=request.user,
+                status=Booking.Status.PENDING,
                 **serializer.validated_data,
             )
+        except OwnHotelBookingDenied as error:
+            raise PermissionDenied({
+                'code': 'own_hotel_booking',
+                'detail': str(error),
+            }) from error
         except DjangoValidationError as error:
             if hasattr(error, 'error_dict'):
                 detail = error.message_dict
@@ -65,13 +73,43 @@ class BookingListCreateView(ListCreateAPIView):
 
 class BookingCancelView(GenericAPIView):
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSiteUser]
     serializer_class = BookingSerializer
 
     def post(self, request, pk):
         try:
             booking = cancel_booking(user=request.user, booking_id=pk)
+        except BookingConflict as error:
+            return Response({'detail': str(error)}, status=status.HTTP_409_CONFLICT)
         except (DjangoPermissionDenied, DjangoValidationError) as error:
             raise NotFound('ჯავშანი ვერ მოიძებნა.') from error
+
+        return Response(self.get_serializer(booking).data)
+
+
+class IncomingBookingListView(ListAPIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsSiteUser]
+    serializer_class = BookingSerializer
+
+    def get_queryset(self):
+        return Booking.objects.filter(
+            room__hotel__owner=self.request.user,
+        ).select_related('room__hotel__city')
+
+
+class BookingDecisionView(GenericAPIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsSiteUser]
+    serializer_class = BookingSerializer
+    confirm = False
+
+    def post(self, request, pk):
+        try:
+            booking = decide_booking(owner=request.user, booking_id=pk, confirm=self.confirm)
+        except Booking.DoesNotExist as error:
+            raise NotFound('ჯავშანი ვერ მოიძებნა.') from error
+        except BookingConflict as error:
+            return Response({'detail': str(error)}, status=status.HTTP_409_CONFLICT)
 
         return Response(self.get_serializer(booking).data)

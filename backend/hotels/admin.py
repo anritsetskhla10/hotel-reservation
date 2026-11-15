@@ -1,7 +1,8 @@
 from django.contrib import admin
-
-from .models import City, Hotel, Room
 from django.utils.html import format_html
+
+from .forms import RoomAdminForm
+from .models import City, Hotel, HotelPhoto, Room, RoomPhoto
 
 
 @admin.register(City)
@@ -12,6 +13,7 @@ class CityAdmin(admin.ModelAdmin):
 
 class RoomInline(admin.StackedInline):
     model = Room
+    form = RoomAdminForm
     extra = 0
     show_change_link = True
 
@@ -24,20 +26,30 @@ class RoomInline(admin.StackedInline):
     )
 
 
+class HotelPhotoInline(admin.TabularInline):
+    model = HotelPhoto
+    extra = 0
+
+
+class RoomPhotoInline(admin.TabularInline):
+    model = RoomPhoto
+    extra = 0
+
+
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-    inlines = (RoomInline,)
-    list_display = ('id', 'name', 'city', 'is_active')
-    list_filter = ('city', 'is_active')
-    search_fields = ('name', 'address', 'city__name')
-    list_select_related = ('city',)
+    inlines = (RoomInline, HotelPhotoInline)
+    list_display = ('id', 'name', 'city', 'owner', 'publication_status', 'is_active')
+    list_filter = ('city', 'publication_status', 'is_active')
+    search_fields = ('name', 'address', 'city__name', 'owner__username')
+    list_select_related = ('city', 'owner')
 
     fieldsets = (
         ('ძირითადი ინფორმაცია', {
-            'fields': ('name', 'city', 'description', 'address'),
+            'fields': ('name', 'city', 'owner', 'description', 'address'),
         }),
         ('ფოტო და სტატუსი', {
-            'fields': ('photo', 'photo_preview', 'is_active'),
+            'fields': ('photo', 'photo_preview', 'publication_status', 'is_active'),
         }),
     )
 
@@ -55,6 +67,8 @@ class HotelAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
+    inlines = (RoomPhotoInline,)
+    form = RoomAdminForm
     list_display = (
         'room_number',
         'name',

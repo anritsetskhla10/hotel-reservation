@@ -1,11 +1,11 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.template.response import TemplateResponse
 
 from .forms import BookingCreateForm
 from .models import Booking
-from .services import cancel_booking, create_booking
+from .services import BookingConflict, cancel_booking, create_booking
 
 
 @admin.register(Booking)
@@ -36,7 +36,10 @@ class BookingAdmin(admin.ModelAdmin):
     )
     def cancel_selected_bookings(self, request, queryset):
         for booking_id in queryset.values_list('pk', flat=True):
-            cancel_booking(user=request.user, booking_id=booking_id)
+            try:
+                cancel_booking(user=request.user, booking_id=booking_id)
+            except BookingConflict as error:
+                self.message_user(request, f'#{booking_id}: {error}', level=messages.WARNING)
 
         self.message_user(request, 'გაუქმების მოქმედება შესრულდა.')
 

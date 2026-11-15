@@ -2,9 +2,17 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from hotels.models import Room
+from hotels.models import Hotel, Room
 
 from .models import Booking
+
+
+class OwnHotelBookingDenied(PermissionDenied):
+    pass
+
+
+class BookingConflict(Exception):
+    pass
 
 
 def validate_booking_dates(check_in, check_out):
@@ -48,6 +56,7 @@ def create_booking(
     contact_phone,
     check_in,
     check_out,
+    status=Booking.Status.CONFIRMED,
 ):
     if not user.is_authenticated or not user.is_active:
         raise PermissionDenied('დაჯავშნისთვის საჭიროა სისტემაში შესვლა.')
@@ -59,7 +68,15 @@ def create_booking(
     except Room.DoesNotExist:
         raise ValidationError({'room': 'ნომერი ვერ მოიძებნა.'})
 
-    if not room.is_active or not room.hotel.is_active:
+    hotel = room.hotel
+    if hotel.owner_id == user.pk:
+        raise OwnHotelBookingDenied('საკუთარ სასტუმროში ნომერს ვერ დაჯავშნით.')
+
+    if (
+        not room.is_active
+        or not hotel.is_active
+        or hotel.publication_status != Hotel.PublicationStatus.PUBLISHED
+    ):
         raise ValidationError({'room': 'ამ ნომრის დაჯავშნა მიუწვდომელია.'})
 
     if has_booking_overlap(room, check_in, check_out):
@@ -76,6 +93,7 @@ def create_booking(
         check_out=check_out,
         price_per_night=room.price_per_night,
         total_price=room.price_per_night * nights,
+        status=status,
     )
     booking.full_clean()
     booking.save()
@@ -104,8 +122,50 @@ def cancel_booking(*, user, booking_id):
     if booking.status == Booking.Status.CANCELLED:
         return booking
 
+    if booking.status == Booking.Status.REJECTED:
+        raise BookingConflict('უარყოფილი მოთხოვნის გაუქმება შეუძლებელია.')
+
     booking.status = Booking.Status.CANCELLED
     booking.cancelled_at = timezone.now()
     booking.save(update_fields=['status', 'cancelled_at'])
 
+    return booking
+
+
+@transaction.atomic
+def decide_booking(*, owner, booking_id, confirm):
+    if not owner.is_authenticated or not owner.is_active or owner.is_staff:
+        raise PermissionDenied
+
+    owned_bookings = Booking.objects.filter(room__hotel__owner=owner)
+    room_id = owned_bookings.values_list('room_id', flat=True).get(pk=booking_id)
+    room = Room.objects.select_for_update().get(pk=room_id)
+    hotel = Hotel.objects.select_for_update().get(pk=room.hotel_id)
+    if hotel.owner_id != owner.pk:
+        raise Booking.DoesNotExist
+    booking = owned_bookings.select_for_update(of=('self',)).get(
+        pk=booking_id,
+        room=room,
+    )
+
+    new_status = Booking.Status.CONFIRMED if confirm else Booking.Status.REJECTED
+    if booking.status == new_status:
+        return booking
+    if booking.status != Booking.Status.PENDING:
+        raise BookingConflict('გადაწყვეტილების მიღება მხოლოდ მოლოდინში მყოფ მოთხოვნაზეა შესაძლებელი.')
+
+    if confirm:
+        if (
+            not room.is_active
+            or not hotel.is_active
+            or hotel.publication_status != Hotel.PublicationStatus.PUBLISHED
+        ):
+            raise BookingConflict('ამ ნომრის დაჯავშნა მიუწვდომელია.')
+        if booking.check_in < timezone.localdate():
+            raise BookingConflict('შესვლის თარიღი უკვე გასულია.')
+        if has_booking_overlap(room, booking.check_in, booking.check_out):
+            raise BookingConflict('არჩეულ პერიოდში ნომერი უკვე დაჯავშნილია.')
+
+    booking.status = new_status
+    booking.save(update_fields=['status'])
     return booking
