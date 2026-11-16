@@ -13,7 +13,7 @@ const pages = {
     intro: 'დახმარება ნომრის არჩევაში, დაჯავშნასა და გაუქმებაში.',
     sections: [
       ['როგორ დავჯავშნო ნომერი?', 'შედი ანგარიშში, გახსენი ნომრის დეტალები და შეავსე თარიღები და საკონტაქტო ინფორმაცია.'],
-      ['სად ვნახო ჩემი ჯავშნები?', 'გახსენი „ჩემი პროფილი“ და აირჩიე ჩანართი „ჩემი ჯავშნები“.'],
+      ['სად ვნახო ჩემი ჯავშნები?', 'გახსენი პროფილი და აირჩიე „ჩემი ჯავშნები“.'],
       ['როგორ გავაუქმო ჯავშანი?', 'პროფილში გახსენი ჯავშნების ჩანართი და დადასტურებულ ჯავშანთან დააჭირე „გაუქმებას“.'],
     ],
   },
@@ -55,17 +55,17 @@ export default function InfoPage({ page }: { page: keyof typeof pages }) {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-semibold">{title}</h1>
+      <h1 className="d-title">{title}</h1>
       <p className="text-stone-600">{intro}</p>
 
       {sections.map(([heading, text]) =>
         page === 'help' ? (
-          <details key={heading} className="rounded-xl border border-stone-200 bg-white p-4">
+          <details key={heading} className="d-panel">
             <summary className="cursor-pointer font-medium">{heading}</summary>
             <p className="mt-2 text-stone-700">{text}</p>
           </details>
         ) : (
-          <section key={heading} className="space-y-2 rounded-xl border border-stone-200 bg-white p-5">
+          <section key={heading} className="d-panel space-y-2">
             <h2 className="text-lg font-semibold">{heading}</h2>
             <p className="text-stone-700">{text}</p>
           </section>

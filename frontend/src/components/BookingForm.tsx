@@ -143,7 +143,7 @@ export default function BookingForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5 sm:p-8"
+      className="d-panel space-y-4"
     >
       <h2 className="text-xl font-semibold">ნომრის დაჯავშნა</h2>
 
@@ -165,14 +165,14 @@ export default function BookingForm({
                 }}
                 required
                 disabled={submitting}
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 disabled:opacity-60"
+                className="d-control"
               />
             </label>
           )
         })}
       </div>
 
-      <section className="space-y-2 rounded-xl bg-stone-50 p-4" aria-live="polite">
+      <section className="space-y-2 rounded-xl bg-soft p-4" aria-live="polite">
         <h3 className="font-semibold">ფასის შეჯამება</h3>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between gap-3">
@@ -208,7 +208,7 @@ export default function BookingForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-hover disabled:opacity-60"
+        className="d-button w-full"
       >
         {submitting ? 'ჯავშანი იგზავნება…' : 'დაჯავშნა'}
       </button>

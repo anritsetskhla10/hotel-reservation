@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 
 import type { RoomType } from '../types/api'
 
-const inputClass = 'w-full min-w-0 rounded-md border border-stone-300 bg-white px-2.5 py-2'
+const inputClass = 'd-control'
 
 const roomTypes: Record<RoomType, string> = {
   single: 'ერთადგილიანი',
@@ -118,12 +118,12 @@ export default function RoomFilters() {
 
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
-      <div className="flex flex-wrap gap-2">
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-hover">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+        <button type="submit" className="d-button">
           ძებნა
         </button>
-        <button type="reset" className="rounded-lg border border-stone-300 px-4 py-2">
-          გასუფთავება
+        <button type="reset" className="d-button d-secondary">
+          <span aria-hidden="true">↺</span> გასუფთავება
         </button>
       </div>
     </form>

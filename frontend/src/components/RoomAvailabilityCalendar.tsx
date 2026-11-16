@@ -211,7 +211,7 @@ export default function RoomAvailabilityCalendar({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6">
+    <section className="d-panel space-y-4">
       <h2 className="text-xl font-semibold">თავისუფალი ღამეები</h2>
 
       {!bookingCreated && !readOnly && (
@@ -232,7 +232,7 @@ export default function RoomAvailabilityCalendar({
           type="button"
           aria-label="წინა თვე"
           onClick={() => moveMonth(-1)}
-          className="rounded-lg border border-stone-300 px-3 py-2 hover:bg-canvas"
+          className="d-button d-secondary min-w-11"
         >
           ‹
         </button>
@@ -245,7 +245,7 @@ export default function RoomAvailabilityCalendar({
           type="button"
           aria-label="შემდეგი თვე"
           onClick={() => moveMonth(1)}
-          className="rounded-lg border border-stone-300 px-3 py-2 hover:bg-canvas"
+          className="d-button d-secondary min-w-11"
         >
           ›
         </button>
@@ -264,7 +264,13 @@ export default function RoomAvailabilityCalendar({
         onSelectDate={onSelectDate}
       />
 
-      <ul className="flex flex-wrap gap-2 text-xs sm:text-sm">
+      <ul aria-label="კალენდრის ფერების მნიშვნელობა" className="flex flex-wrap gap-2 text-xs sm:text-sm">
+        {!bookingCreated && !readOnly && (
+          <>
+            <li className={`rounded-md px-2 py-1 ${checkInStyle}`}>შესვლის დღე</li>
+            <li className={`rounded-md px-2 py-1 ${checkOutStyle}`}>გასვლის დღე</li>
+          </>
+        )}
         <li className="rounded-md bg-emerald-100 px-2 py-1 text-emerald-900">
           თავისუფალია
         </li>

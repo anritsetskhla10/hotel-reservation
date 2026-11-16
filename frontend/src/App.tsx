@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router'
+import { BrowserRouter, Route, Routes, Navigate, Link } from 'react-router'
 import HotelsPage from './pages/HotelsPage'
 import HotelDetailPage from './pages/HotelDetailPage'
 import SiteHeader from './components/SiteHeader'
@@ -33,7 +33,14 @@ export default function App() {
           <Route path="/terms" element={<InfoPage page="terms" />} />
           <Route path="/privacy" element={<InfoPage page="privacy" />} />
           <Route path="/cookies" element={<InfoPage page="cookies" />} />
-          <Route path="*" element={<main><h1>გვერდი ვერ მოიძებნა</h1></main>} />
+          <Route path="*" element={(
+            <main className="mx-auto max-w-xl px-4 py-12">
+              <div className="d-panel space-y-4">
+                <h1 className="d-title">გვერდი ვერ მოიძებნა</h1>
+                <Link to="/" className="d-button">მთავარ გვერდზე დაბრუნება</Link>
+              </div>
+            </main>
+          )} />
         </Routes>
       </div>
       <SiteFooter />

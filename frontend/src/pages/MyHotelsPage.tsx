@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router'
 
 import { getJson, postWithCsrf, sendWithCsrf } from '../lib/api'
 import type { City } from '../types/api'
@@ -19,7 +20,7 @@ type MyHotel = {
 }
 
 const endpoint = '/api/my/hotels/'
-const inputClass = 'w-full rounded-lg border border-stone-300 bg-white px-3 py-2'
+const inputClass = 'd-control'
 const fieldLabels: Record<string, string> = {
   name: 'სახელი',
   city: 'ქალაქი',
@@ -29,12 +30,14 @@ const fieldLabels: Record<string, string> = {
 }
 
 export default function MyHotelsPage() {
-  const [openHotelId, setOpenHotelId] = useState<number | null>(null)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [params, setParams] = useSearchParams()
+  const hotelId = params.get('hotel')
+  const adding = params.get('action') === 'new'
+  const view = params.get('manage') ?? 'info'
   const [hotels, setHotels] = useState<MyHotel[] | null>(null)
   const [cities, setCities] = useState<City[]>([])
   const [loadError, setLoadError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<{ hotelId: number; message: string } | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -56,73 +59,92 @@ export default function MyHotelsPage() {
     return () => controller.abort()
   }, [])
 
+  const selectedHotel = hotels?.find((hotel) => String(hotel.id) === hotelId)
+  const listPath = '/profile?tab=hotels'
+  const addPath = listPath + '&action=new'
+
   function saveHotel(hotel: MyHotel, editing: boolean) {
     setHotels((current) => editing
       ? (current ?? []).map((item) => item.id === hotel.id ? hotel : item)
       : [hotel, ...(current ?? [])])
-    if (editing) setEditingId(null)
-    setNotice(editing
-      ? 'სასტუმროს ცვლილებები შენახულია.'
-      : 'განაცხადი გაიგზავნა. სასტუმრო განხილვის მოლოდინშია.')
+    setNotice({
+      hotelId: hotel.id,
+      message: editing ? 'სასტუმროს ცვლილებები შენახულია.' : 'განაცხადი გაიგზავნა. სასტუმრო განხილვის მოლოდინშია.',
+    })
+    if (!editing) setParams({ tab: 'hotels', hotel: String(hotel.id) })
   }
 
-  if (loadError) return <p role="alert" className="text-red-700">{loadError}</p>
-  if (!hotels) return <p role="status">სასტუმროები იტვირთება…</p>
+  if (loadError) return <p role="alert" className="d-panel">{loadError}</p>
+  if (!hotels) return <p role="status" className="d-panel">სასტუმროები იტვირთება…</p>
+
+  if (adding) {
+    return (
+      <section className="space-y-4">
+        <Link to={listPath} className="text-sm font-semibold text-brand underline">← ჩემი სასტუმროები</Link>
+        <h1 className="d-title">სასტუმროს დამატება</h1>
+        <HotelForm cities={cities} onSaved={(hotel) => saveHotel(hotel, false)} />
+      </section>
+    )
+  }
+
+  if (selectedHotel) {
+    const hotelPath = listPath + '&hotel=' + selectedHotel.id
+    const sections = [['info', 'ინფორმაცია'], ['rooms', 'ნომრები'], ['photos', 'ფოტოები']]
+    return (
+      <section className="space-y-4">
+        <Link to={listPath} className="text-sm font-semibold text-brand underline">← ჩემი სასტუმროები</Link>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="d-title">{selectedHotel.name}</h1>
+          <HotelState hotel={selectedHotel} />
+        </div>
+        <nav aria-label="სასტუმროს მართვის განყოფილებები" className="flex flex-wrap gap-2">
+          {sections.map(([key, label]) => (
+            <Link key={key} to={key === 'info' ? hotelPath : hotelPath + '&manage=' + key}
+              aria-current={(view === key || (key === 'info' && !sections.some(([section]) => section === view))) ? 'page' : undefined}
+              className="d-button d-secondary aria-[current=page]:border-brand aria-[current=page]:bg-soft">
+              {label}
+            </Link>
+          ))}
+        </nav>
+        {notice?.hotelId === selectedHotel.id && <p role="status" className="d-notice">{notice.message}</p>}
+        {view === 'rooms' ? <MyHotelRooms key={selectedHotel.id} hotelId={selectedHotel.id} />
+          : view === 'photos' ? <OwnerGallery key={selectedHotel.id} endpoint={`${endpoint}${selectedHotel.id}/photos/`} />
+          : <HotelForm key={selectedHotel.id} cities={cities} hotel={selectedHotel} onSaved={(hotel) => saveHotel(hotel, true)} />}
+      </section>
+    )
+  }
 
   return (
-    <section className="space-y-5">
-      <h2 className="text-xl font-semibold">ჩემი სასტუმროები</h2>
-      {notice && <p role="status" className="text-sm text-emerald-800">{notice}</p>}
-
-      {hotels.length === 0 ? (
-        <p>სასტუმრო ჯერ არ გაქვთ დამატებული.</p>
-      ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {hotels.map((hotel) => (
-            <li key={hotel.id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-              {hotel.photo && (
-                <img src={hotel.photo} alt="" className="aspect-video w-full object-cover" />
-              )}
-              <div className="space-y-2 p-4">
-                <h3 className="font-semibold">{hotel.name}</h3>
-                <p className="text-sm text-stone-600">{hotel.city_name} · {hotel.address}</p>
-                <p className="text-sm font-medium">
-                  {hotel.publication_status_display}
-                  {!hotel.is_active && ' · გამორთულია'}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    aria-expanded={openHotelId === hotel.id}
-                    onClick={() => setOpenHotelId((current) => current === hotel.id ? null : hotel.id)}
-                    className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium"
-                  >
-                    {openHotelId === hotel.id ? 'ნომრების დახურვა' : 'ნომრების მართვა'}
-                  </button>
-                  <button
-                    type="button"
-                    aria-expanded={editingId === hotel.id}
-                    onClick={() => {
-                      setNotice('')
-                      setEditingId((current) => current === hotel.id ? null : hotel.id)
-                    }}
-                    className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium"
-                  >
-                    {editingId === hotel.id ? 'რედაქტირების დახურვა' : 'სასტუმროს რედაქტირება'}
-                  </button>
-                </div>
-                {editingId === hotel.id && (
-                  <HotelForm cities={cities} hotel={hotel} onSaved={(saved) => saveHotel(saved, true)} />
-                )}
-                <OwnerGallery endpoint={`${endpoint}${hotel.id}/photos/`} />
-                {openHotelId === hotel.id && <MyHotelRooms hotelId={hotel.id} />}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <HotelForm cities={cities} onSaved={(hotel) => saveHotel(hotel, false)} />
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="d-title">ჩემი სასტუმროები</h1>
+        <Link to={addPath} className="d-button">სასტუმროს დამატება</Link>
+      </div>
+      {hotelId && <p role="alert" className="d-panel">სასტუმრო ვერ მოიძებნა.</p>}
+      {hotels.length === 0 && <p className="d-panel text-stone-600">სასტუმრო ჯერ არ გაქვს დამატებული.</p>}
+      {hotels.map((hotel) => (
+        <article key={hotel.id} className="d-panel grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
+          {hotel.photo ? <img src={hotel.photo} alt="" loading="lazy" className="h-28 w-full rounded-lg object-cover" />
+            : <div className="h-28 rounded-lg bg-soft" />}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className="text-lg font-semibold">{hotel.name}</h2>
+              <HotelState hotel={hotel} />
+            </div>
+            <p className="text-sm text-stone-600">{hotel.city_name} · {hotel.address}</p>
+            <Link to={listPath + '&hotel=' + hotel.id} className="d-button d-secondary">სასტუმროს მართვა</Link>
+          </div>
+        </article>
+      ))}
     </section>
+  )
+}
+
+function HotelState({ hotel }: { hotel: MyHotel }) {
+  return (
+    <span className={`rounded-md px-2 py-1 text-xs font-semibold ${hotel.publication_status === 'pending' ? 'bg-amber-100 text-amber-900' : 'bg-soft text-brand'}`}>
+      {hotel.publication_status_display}{!hotel.is_active && ' · გამორთულია'}
+    </span>
   )
 }
 
@@ -179,7 +201,7 @@ function HotelForm({ cities, hotel, onSaved }: {
 
   return (
       <form onSubmit={handleSubmit} encType="multipart/form-data"
-        className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5">
+        className="d-panel space-y-4">
         <h3 className="text-lg font-semibold">{hotel ? 'სასტუმროს რედაქტირება' : 'სასტუმროს დამატება'}</h3>
         {!hotel && <p className="text-sm text-stone-600">სასტუმრო გამოჩნდება საჯარო სიაში ადმინისტრატორის დამტკიცების შემდეგ.</p>}
         {cities.length === 0 && <p role="status">სიაში ქალაქები ჯერ არ არის.</p>}
@@ -211,7 +233,7 @@ function HotelForm({ cities, hotel, onSaved }: {
         </fieldset>
         {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
         <button type="submit" disabled={submitting || cities.length === 0}
-          className="rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-60">
+          className="d-button">
           {submitting ? 'ინახება…' : hotel ? 'ცვლილებების შენახვა' : 'განაცხადის გაგზავნა'}
         </button>
       </form>

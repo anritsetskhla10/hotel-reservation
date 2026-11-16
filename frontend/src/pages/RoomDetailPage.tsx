@@ -115,7 +115,7 @@ function RoomDetails({ id }: { id: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-5 px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-7xl space-y-5 px-4 py-8 sm:px-6 lg:px-8">
       <Link to="/rooms" className="text-sm font-medium text-brand hover:underline">
         ← ნომრების სია
       </Link>
@@ -125,50 +125,63 @@ function RoomDetails({ id }: { id: string }) {
 
       {room && (
         <>
-          <article className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-            <PhotoGallery name={room.name} cover={room.photo} photos={room.gallery} />
-
-            <div className="space-y-3 p-5 sm:p-8">
-              <p className="text-sm font-medium text-brand">
-                {room.hotel_name} · {room.city.name}
+          <header className="flex flex-wrap items-end justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-brand">
+                <Link to={`/hotels/${room.hotel}`} className="hover:underline">{room.hotel_name}</Link>
+                {' · '}{room.city.name}
               </p>
-              <h1 className="text-3xl font-semibold">{room.name}</h1>
-              <p>{room.room_type_display} · {room.capacity} სტუმარი</p>
-              <p className="whitespace-pre-line">{room.description}</p>
-              <p className="text-xl font-semibold">{room.price_per_night} ₾ / ღამე</p>
+              <h1 className="d-title">{room.name}</h1>
+              <p className="text-sm text-stone-700">{room.room_type_display} · {room.capacity} სტუმარი</p>
             </div>
-          </article>
+            <p className="text-xl font-semibold tabular-nums">{room.price_per_night} ₾ <span className="text-sm font-normal text-stone-600">/ ღამე</span></p>
+          </header>
 
-          <RoomAvailabilityCalendar
-            roomId={room.id}
-            bookingCreated={bookingCreated}
-            readOnly={isOwnRoom || checkingOwnership}
-            checkIn={dates.check_in}
-            checkOut={dates.check_out}
-            checkingRange={checkingRange}
-            onSelectDate={(date) => void selectDate(date)}
-          />
-          {rangeError && <p role="alert" className="text-red-700">{rangeError}</p>}
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div className="min-w-0 space-y-5">
+              <div className="overflow-hidden rounded-xl border border-surface-border bg-white">
+                <PhotoGallery name={room.name} cover={room.photo} photos={room.gallery} />
+              </div>
+              <section className="d-panel space-y-3">
+                <h2 className="text-xl font-semibold">ნომრის შესახებ</h2>
+                <p className="whitespace-pre-line leading-relaxed text-stone-700">{room.description}</p>
+                {!checkingOwnership && !isOwnRoom && (
+                  <a href="#booking" className="d-button lg:hidden">თარიღების არჩევა</a>
+                )}
+              </section>
+            </div>
 
-          {checkingOwnership ? (
-            <p role="status">დაჯავშნის ფორმა იტვირთება…</p>
-          ) : isOwnRoom ? (
-            <section className="space-y-2 rounded-2xl border border-stone-200 bg-white p-5">
-              <h2 className="text-xl font-semibold">ეს ნომერი თქვენს სასტუმროს ეკუთვნის</h2>
-              <p>საკუთარ სასტუმროში ნომერს ვერ დაჯავშნით.</p>
-              <Link to="/profile?tab=hotels" className="font-medium text-brand underline">
-                ჩემი სასტუმროები
-              </Link>
-            </section>
-          ) : (
-            <BookingForm
-              roomId={room.id}
-              pricePerNight={room.price_per_night}
-              dates={dates}
-              onDateChange={changeDate}
-              onBookingCreated={() => setBookingCreated(true)}
-            />
-          )}
+            <div id="booking" className="min-w-0 scroll-mt-6 space-y-4">
+              <RoomAvailabilityCalendar
+                roomId={room.id}
+                bookingCreated={bookingCreated}
+                readOnly={isOwnRoom || checkingOwnership}
+                checkIn={dates.check_in}
+                checkOut={dates.check_out}
+                checkingRange={checkingRange}
+                onSelectDate={(date) => void selectDate(date)}
+              />
+              {rangeError && <p role="alert" className="d-notice text-red-700">{rangeError}</p>}
+
+              {checkingOwnership ? (
+                <p role="status" className="d-panel">დაჯავშნის ფორმა იტვირთება…</p>
+              ) : isOwnRoom ? (
+                <section className="d-panel space-y-2">
+                  <h2 className="text-xl font-semibold">ეს ნომერი თქვენს სასტუმროს ეკუთვნის</h2>
+                  <p>საკუთარ სასტუმროში ნომერს ვერ დაჯავშნით.</p>
+                  <Link to="/profile?tab=hotels" className="d-button d-secondary">ჩემი სასტუმროები</Link>
+                </section>
+              ) : (
+                <BookingForm
+                  roomId={room.id}
+                  pricePerNight={room.price_per_night}
+                  dates={dates}
+                  onDateChange={changeDate}
+                  onBookingCreated={() => setBookingCreated(true)}
+                />
+              )}
+            </div>
+          </div>
         </>
       )}
     </main>

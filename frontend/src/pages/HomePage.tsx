@@ -72,33 +72,24 @@ export default function HomePage() {
   ].slice(0, 3)
 
   return (
-    <main className="bg-[#fbfaf6]">
-      <section aria-labelledby="home-title" className={`${pageWidth} pb-10 pt-9 sm:pb-14 sm:pt-14`}>
-        <div className="mb-6 grid gap-5 sm:mb-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-end lg:gap-12">
-          <h1 id="home-title" className="max-w-3xl text-[clamp(2.5rem,6.4vw,5.25rem)] font-semibold leading-[1.06] tracking-tight text-ink">
-            სად გინდა დარჩე?
-          </h1>
-          <div className="max-w-md space-y-4">
-            <p className="text-base leading-relaxed text-stone-700 sm:text-lg">
+    <main className="bg-canvas">
+      <section aria-labelledby="home-title" className={`${pageWidth} pb-9 pt-5 sm:pb-12 sm:pt-8`}>
+        <div className="relative isolate flex min-h-96 items-end overflow-hidden rounded-2xl bg-[#21372d] sm:min-h-112">
+          <img src={heroPhoto} alt="" fetchPriority="high" width="1536" height="1024"
+            className="absolute inset-0 -z-20 size-full object-cover object-[center_57%]" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(0deg,#10251df5,#10251d75_65%,#10251d35)] sm:bg-[linear-gradient(90deg,#10251deb,#10251d8c_65%,#10251d24)]" />
+          <div className="space-y-4 p-6 text-white sm:p-10 lg:p-14">
+            <h1 id="home-title" className="max-w-2xl text-[clamp(2.5rem,6vw,4.75rem)] font-semibold leading-[1.1] tracking-tight">
+              სად გინდა დარჩე?
+            </h1>
+            <p className="max-w-lg leading-relaxed sm:text-lg">
               შეარჩიე სასტუმრო საქართველოში, ნახე თავისუფალი თარიღები და გაგზავნე ჯავშნის მოთხოვნა.
             </p>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <Link to="/hotels" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-4 py-2 font-semibold text-white hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-                სასტუმროების ძებნა <span aria-hidden="true">↗</span>
-              </Link>
-              <Link to="/rooms" className={`${textLink} text-sm`}>ნომრების ნახვა</Link>
-            </div>
+            <Link to="/hotels" className="d-button d-secondary focus-visible:outline-white">
+              სასტუმროების ძებნა <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
-
-        <figure className="relative overflow-hidden rounded-xl bg-[#ddd5c8]">
-          <img src={heroPhoto} alt="ძველი თბილისის სახურავები და მტკვარი მზის ჩასვლისას"
-            fetchPriority="high" width="1536" height="1024"
-            className="h-64 w-full object-cover object-[center_57%] sm:h-80 lg:h-104" />
-          <figcaption className="absolute bottom-3 right-3 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-ink sm:bottom-5 sm:right-5">
-            ძველი თბილისი
-          </figcaption>
-        </figure>
       </section>
 
       <section aria-labelledby="destinations-title" className={`${pageWidth} space-y-5 pb-10 sm:pb-14`}>

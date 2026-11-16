@@ -43,13 +43,15 @@ const fieldLabels: Record<string, string> = {
   description: 'აღწერა',
 }
 
-const inputClass = 'w-full rounded-lg border border-stone-300 bg-white px-3 py-2'
+const inputClass = 'd-control'
 
 export default function MyHotelRooms({ hotelId }: { hotelId: number }) {
   const endpoint = `/api/my/hotels/${hotelId}/rooms/`
   const [rooms, setRooms] = useState<ManagedRoom[] | null>(null)
   const [loadError, setLoadError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [galleryId, setGalleryId] = useState<number | null>(null)
+  const [adding, setAdding] = useState(false)
   const [notice, setNotice] = useState('')
   const [updatingFeatured, setUpdatingFeatured] = useState(false)
   const [featuredError, setFeaturedError] = useState('')
@@ -95,41 +97,71 @@ export default function MyHotelRooms({ hotelId }: { hotelId: number }) {
   if (loadError) return <p role="alert" className="text-red-700">{loadError}</p>
   if (!rooms) return <p role="status">ნომრები იტვირთება…</p>
 
+  const editing = rooms.find((room) => room.id === editingId)
+  const galleryRoom = rooms.find((room) => room.id === galleryId)
+
+  if (editing || adding || galleryRoom) {
+    return (
+      <section className="space-y-4">
+        <button type="button" className="d-button d-secondary" onClick={() => {
+          setEditingId(null)
+          setAdding(false)
+          setGalleryId(null)
+        }}>← ნომრების სია</button>
+        {galleryRoom ? (
+          <>
+            <h2 className="text-xl font-semibold">{galleryRoom.name} · გალერეა</h2>
+            <OwnerGallery key={galleryRoom.id} endpoint={`${endpoint}${galleryRoom.id}/photos/`} />
+          </>
+        ) : editing ? (
+          <RoomForm key={editing.id} endpoint={`${endpoint}${editing.id}/`} room={editing} onSaved={updateRoom} />
+        ) : (
+          <RoomForm endpoint={endpoint} onSaved={(room) => {
+            setRooms((current) => [...(current ?? []), room])
+            setAdding(false)
+            setNotice('ნომერი დაემატა.')
+          }} />
+        )}
+      </section>
+    )
+  }
+
   return (
-    <div className="space-y-4 border-t border-stone-200 pt-4">
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">ნომრები</h2>
+        <button type="button" className="d-button" onClick={() => { setNotice(''); setAdding(true) }}>ნომრის დამატება</button>
+      </div>
       {featuredError && <p role="alert" className="text-sm text-red-700">{featuredError}</p>}
-      {notice && <p role="status" className="text-sm text-emerald-800">{notice}</p>}
-      {rooms.length === 0 ? <p className="text-sm">ნომრები ჯერ არ გაქვთ დამატებული.</p> : (
-        <ul className="divide-y divide-stone-200">
+      {notice && <p role="status" className="d-notice">{notice}</p>}
+      {rooms.length === 0 ? <p className="d-panel text-sm">ნომრები ჯერ არ გაქვს დამატებული.</p> : (
+        <ul className="space-y-3">
           {rooms.map((room) => (
-            <li key={room.id} className="space-y-2 py-2 text-sm">
-              <p className="font-medium">№{room.room_number} · {room.name}</p>
-              <p>{room.room_type_display} · {room.capacity} სტუმარი · {room.price_per_night} ₾ / ღამე</p>
-              {!room.is_active && <p>გამორთულია</p>}
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={room.is_featured} disabled={updatingFeatured}
-                  onChange={() => void toggleFeatured(room)} />
-                გამორჩეული ნომერი
-              </label>
-              <button type="button" aria-expanded={editingId === room.id}
-                className="rounded-lg border border-stone-300 px-3 py-2"
-                onClick={() => {
-                  setNotice('')
-                  setEditingId((current) => current === room.id ? null : room.id)
-                }}>
-                {editingId === room.id ? 'რედაქტირების დახურვა' : 'ნომრის რედაქტირება'}
-              </button>
-              {editingId === room.id && <RoomForm endpoint={`${endpoint}${room.id}/`} room={room} onSaved={updateRoom} />}
-              <OwnerGallery endpoint={`${endpoint}${room.id}/photos/`} />
+            <li key={room.id} className="d-panel grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
+              {room.photo ? <img src={room.photo} alt="" loading="lazy" className="h-28 w-full rounded-lg object-cover" />
+                : <div className="h-28 rounded-lg bg-soft" />}
+              <div className="space-y-2 text-sm">
+                <div className="flex flex-wrap justify-between gap-2">
+                  <h3 className="text-base font-semibold">№{room.room_number} · {room.name}</h3>
+                  <span className={`rounded-md px-2 py-1 text-xs ${room.is_active ? 'bg-soft text-brand' : 'bg-stone-100 text-stone-700'}`}>
+                    {room.is_active ? 'აქტიური' : 'გამორთულია'}
+                  </span>
+                </div>
+                <p>{room.room_type_display} · {room.capacity} სტუმარი · {room.price_per_night} ₾ / ღამე</p>
+                <label className="flex w-fit items-center gap-2">
+                  <input type="checkbox" checked={room.is_featured} disabled={updatingFeatured}
+                    onChange={() => void toggleFeatured(room)} /> გამორჩეული ნომერი
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="d-button d-secondary" onClick={() => { setNotice(''); setEditingId(room.id) }}>რედაქტირება</button>
+                  <button type="button" className="d-button d-secondary" onClick={() => { setNotice(''); setGalleryId(room.id) }}>ფოტოები</button>
+                </div>
+              </div>
             </li>
           ))}
         </ul>
       )}
-      <RoomForm endpoint={endpoint} onSaved={(room) => {
-        setRooms((current) => [...(current ?? []), room])
-        setNotice('ნომერი დაემატა.')
-      }} />
-    </div>
+    </section>
   )
 }
 
@@ -191,7 +223,7 @@ function RoomForm({ endpoint, room, onSaved }: {
   }
 
   return (
-      <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-3">
+      <form onSubmit={handleSubmit} encType="multipart/form-data" className="d-panel space-y-3">
         <h4 className="font-semibold">{room ? 'ნომრის რედაქტირება' : 'ნომრის დამატება'}</h4>
         <fieldset disabled={submitting} className="grid gap-3 lg:grid-cols-2">
           {fields.map(({ name, label, maxLength }) => (

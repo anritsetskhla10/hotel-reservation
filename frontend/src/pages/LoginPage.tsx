@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { postWithCsrf } from '../lib/api'
 import { buildAuthPath, getRoomReturnPath } from '../lib/authNavigation'
 
-const inputClass = 'w-full rounded-lg border border-stone-300 px-3 py-2'
+const inputClass = 'd-control'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const returnPath = getRoomReturnPath(searchParams.get('next'))
   const registerPath = buildAuthPath('/register', returnPath)
 
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -61,9 +62,9 @@ export default function LoginPage() {
     <main className="mx-auto max-w-md px-4 py-10">
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-2xl border border-stone-200 bg-white p-6"
+        className="d-panel space-y-4 sm:p-7"
       >
-        <h1 className="text-2xl font-semibold">შესვლა</h1>
+        <h1 className="d-title">შესვლა</h1>
 
         <label className="block space-y-1">
           <span>მომხმარებლის სახელი</span>
@@ -80,7 +81,7 @@ export default function LoginPage() {
           <span>პაროლი</span>
           <input
             name="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             required
             disabled={submitting}
@@ -88,12 +89,18 @@ export default function LoginPage() {
           />
         </label>
 
+        <label className="flex w-fit items-center gap-2 text-sm">
+          <input type="checkbox" checked={showPassword} className="size-4 accent-brand"
+            onChange={(event) => setShowPassword(event.target.checked)} />
+          პაროლის ჩვენება
+        </label>
+
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-hover disabled:opacity-60"
+          className="d-button w-full"
         >
           {submitting ? 'მიმდინარეობს შესვლა…' : 'შესვლა'}
         </button>

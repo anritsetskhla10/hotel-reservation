@@ -29,8 +29,11 @@ function HotelResults({ cityId }: { cityId: string }) {
   if (hotels.length === 0) return <p>სასტუმროები ვერ მოიძებნა.</p>
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
-      {hotels.map((hotel) => <HotelCard key={hotel.id} hotel={hotel} />)}
+    <div className="space-y-3">
+      <p role="status" className="text-sm text-stone-600">ნაპოვნია {hotels.length} სასტუმრო</p>
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {hotels.map((hotel) => <HotelCard key={hotel.id} hotel={hotel} />)}
+      </div>
     </div>
   )
 }
@@ -57,13 +60,13 @@ export default function HotelsPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-semibold">სასტუმროები</h1>
+      <h1 className="d-title">სასტუმროები</h1>
       <div className="grid items-start gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8">
         <FilterSidebar>
           <label className="flex flex-col gap-1 text-sm font-medium">
             ქალაქი
             <select
-              className="rounded-lg border border-stone-300 bg-white px-3 py-2"
+              className="d-control"
               value={cityId}
               onChange={(event) => {
                 const value = event.target.value
@@ -76,6 +79,10 @@ export default function HotelsPage() {
               ))}
             </select>
           </label>
+          <button type="button" className="d-button d-secondary mt-4 w-full" disabled={!cityId}
+            onClick={() => setSearchParams({})}>
+            <span aria-hidden="true">↺</span> გასუფთავება
+          </button>
           {cityError && <p role="alert" className="mt-2 text-sm text-red-700">{cityError}</p>}
         </FilterSidebar>
         <section className="min-w-0" aria-label="სასტუმროების შედეგები">

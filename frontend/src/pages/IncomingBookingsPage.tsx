@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import BookingCard from '../components/BookingCard'
 import { getJson, postWithCsrf } from '../lib/api'
 import type { Booking } from '../types/api'
 
@@ -8,7 +9,8 @@ export default function IncomingBookingsPage() {
   const [loadError, setLoadError] = useState('')
   const [decisionError, setDecisionError] = useState('')
   const [notice, setNotice] = useState('')
-  const [updating, setUpdating] = useState(false)
+  const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [errorId, setErrorId] = useState<number | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -23,8 +25,9 @@ export default function IncomingBookingsPage() {
   }, [])
 
   async function decide(id: number, action: 'confirm' | 'reject') {
-    if (updating) return
-    setUpdating(true)
+    if (updatingId !== null) return
+    setUpdatingId(id)
+    setErrorId(id)
     setDecisionError('')
     setNotice('')
 
@@ -43,41 +46,35 @@ export default function IncomingBookingsPage() {
     } catch {
       setDecisionError('გადაწყვეტილება ვერ შეინახა. სცადეთ ხელახლა.')
     } finally {
-      setUpdating(false)
+      setUpdatingId(null)
     }
   }
 
-  if (loadError) return <p role="alert">{loadError}</p>
-  if (!bookings) return <p role="status">მოთხოვნები იტვირთება…</p>
+  const ordered = bookings?.toSorted((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending'))
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold">შემოსული მოთხოვნები</h2>
-      {bookings.length === 0 && <p>შემოსული მოთხოვნები ჯერ არ გაქვთ.</p>}
-      {decisionError && <p role="alert" className="text-red-700">{decisionError}</p>}
-      {notice && <p role="status">{notice}</p>}
-      <ul className="grid gap-4 sm:grid-cols-2">
-        {bookings.map((booking) => (
-          <li key={booking.id} className="space-y-2 rounded-2xl border border-stone-200 bg-white p-4">
-            <h3 className="font-semibold">{booking.hotel_name} · {booking.room_name}</h3>
-            <p>#{booking.id} · {booking.status_display}</p>
-            <p>{booking.check_in} → {booking.check_out} · {booking.total_price} ₾</p>
-            <p>{booking.contact_name} · {booking.contact_phone}</p>
-            {booking.status === 'pending' && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                <button type="button" disabled={updating} onClick={() => void decide(booking.id, 'confirm')}
-                  className="rounded-lg bg-brand px-3 py-2 text-sm text-white disabled:opacity-60">
-                  დადასტურება
-                </button>
-                <button type="button" disabled={updating} onClick={() => void decide(booking.id, 'reject')}
-                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm disabled:opacity-60">
-                  უარყოფა
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      <h1 className="d-title">შემოსული მოთხოვნები</h1>
+      {loadError && <p role="alert" className="d-panel">{loadError}</p>}
+      {!loadError && !bookings && <p role="status" className="d-panel">მოთხოვნები იტვირთება…</p>}
+      {bookings?.length === 0 && <p className="d-panel">შემოსული მოთხოვნები ჯერ არ გაქვს.</p>}
+      {notice && <p role="status" className="d-notice">{notice}</p>}
+      {ordered?.map((booking) => (
+        <BookingCard key={booking.id} booking={booking}>
+          <p className="text-sm">სტუმარი · <strong>{booking.contact_name}</strong></p>
+          {errorId === booking.id && decisionError && <p role="alert" className="text-sm text-red-700">{decisionError}</p>}
+          {booking.status === 'pending' && (
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={updatingId !== null} className="d-button"
+                onClick={() => void decide(booking.id, 'confirm')}>
+                {updatingId === booking.id ? 'მუშავდება…' : 'დადასტურება'}
+              </button>
+              <button type="button" disabled={updatingId !== null} className="d-button d-secondary"
+                onClick={() => void decide(booking.id, 'reject')}>უარყოფა</button>
+            </div>
+          )}
+        </BookingCard>
+      ))}
     </section>
   )
 }

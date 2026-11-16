@@ -1,14 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f8f5ef;
-  --color-ink: #182b26;
-  --color-brand: #245b48;
-  --color-brand-hover: #1b4638;
+  --color-canvas: #f6f6f1;
+  --color-ink: #192d25;
+  --color-brand: #215b45;
+  --color-brand-hover: #184631;
+  --color-surface-border: #dbe4da;
+  --color-soft: #eaf0e8;
+  --font-sans: "Noto Sans Georgian", "Segoe UI", system-ui, sans-serif;
 }
 
 @layer base {
   body {
     @apply min-h-screen bg-canvas font-sans text-ink antialiased;
+  }
+
+  :where(a, button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .d-panel {
+    @apply min-w-0 rounded-xl border border-surface-border bg-white p-4 sm:p-5;
+  }
+  .d-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-transparent bg-brand px-3.5 py-2 text-center text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60;
+  }
+  .d-secondary {
+    @apply border-surface-border bg-white text-brand hover:border-brand hover:bg-soft;
+  }
+  .d-control {
+    @apply min-h-11 w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2 disabled:opacity-60;
+  }
+  .d-notice {
+    @apply rounded-lg border-l-3 border-brand bg-soft px-3 py-2 text-sm;
+  }
+  .d-title {
+    @apply text-3xl font-semibold tracking-tight sm:text-4xl;
   }
 }

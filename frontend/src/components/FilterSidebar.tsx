@@ -6,7 +6,7 @@ export default function FilterSidebar({ children }: { children: ReactNode }) {
 
   return (
     <aside aria-label="ფილტრები"
-      className="self-start rounded-xl border border-stone-200 bg-white lg:sticky lg:top-5 lg:max-h-[calc(100dvh-2.5rem)] lg:overflow-y-auto">
+      className="self-start rounded-xl border border-surface-border bg-white lg:sticky lg:top-5 lg:max-h-[calc(100dvh-2.5rem)] lg:overflow-y-auto">
       <h2 className="hidden px-4 pt-4 font-semibold lg:block">ფილტრები</h2>
       <button type="button" aria-expanded={expanded} aria-controls={panelId}
         onClick={() => setExpanded((current) => !current)}

@@ -8,7 +8,7 @@ type ManagedPhoto = GalleryPhoto & { position: number }
 const inputClass = 'w-full rounded-lg border border-stone-300 bg-white px-3 py-2'
 const buttonClass = 'rounded-lg border border-stone-300 px-3 py-2 text-sm disabled:opacity-60'
 
-function GalleryEditor({ endpoint }: { endpoint: string }) {
+export default function OwnerGallery({ endpoint }: { endpoint: string }) {
   const [photos, setPhotos] = useState<ManagedPhoto[] | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [error, setError] = useState('')
@@ -125,15 +125,3 @@ function GalleryEditor({ endpoint }: { endpoint: string }) {
   )
 }
 
-export default function OwnerGallery({ endpoint }: { endpoint: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="space-y-2">
-      <button type="button" aria-expanded={open} className={buttonClass}
-        onClick={() => setOpen((current) => !current)}>
-        {open ? 'გალერეის დახურვა' : 'გალერეის მართვა'}
-      </button>
-      {open && <GalleryEditor key={endpoint} endpoint={endpoint} />}
-    </div>
-  )
-}
