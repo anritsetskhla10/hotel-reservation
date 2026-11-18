@@ -5,12 +5,14 @@ from .forms import RoomAdminForm
 from .models import City, Hotel, HotelPhoto, Room, RoomPhoto
 
 
+# ქალაქების მართვა
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
     search_fields = ('name',)
 
 
+# ნომრების მართვა სასტუმროს ფორმიდან
 class RoomInline(admin.StackedInline):
     model = Room
     form = RoomAdminForm
@@ -26,16 +28,19 @@ class RoomInline(admin.StackedInline):
     )
 
 
+# სასტუმროს გალერეა
 class HotelPhotoInline(admin.TabularInline):
     model = HotelPhoto
     extra = 0
 
 
+# ნომრის გალერეა
 class RoomPhotoInline(admin.TabularInline):
     model = RoomPhoto
     extra = 0
 
 
+# სასტუმროების მართვა
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
     inlines = (RoomInline, HotelPhotoInline)
@@ -44,6 +49,7 @@ class HotelAdmin(admin.ModelAdmin):
     search_fields = ('name', 'address', 'city__name', 'owner__username')
     list_select_related = ('city', 'owner')
 
+    # ფორმის განყოფილებები
     fieldsets = (
         ('ძირითადი ინფორმაცია', {
             'fields': ('name', 'city', 'owner', 'description', 'address'),
@@ -55,6 +61,7 @@ class HotelAdmin(admin.ModelAdmin):
 
     readonly_fields = ('photo_preview',)
 
+    # ატვირთული ფოტოს ჩვენება
     @admin.display(description='ფოტოს წინასწარი ხედი')
     def photo_preview(self, obj):
         if not obj or not obj.photo:
@@ -65,10 +72,13 @@ class HotelAdmin(admin.ModelAdmin):
             obj.photo.url,
         )
 
+
+# ნომრების მართვა
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
     inlines = (RoomPhotoInline,)
     form = RoomAdminForm
+
     list_display = (
         'room_number',
         'name',
@@ -90,6 +100,7 @@ class RoomAdmin(admin.ModelAdmin):
     list_select_related = ('hotel',)
     readonly_fields = ('photo_preview',)
 
+    # ფორმის განყოფილებები
     fieldsets = (
         ('ძირითადი ინფორმაცია', {
             'fields': (
@@ -111,6 +122,7 @@ class RoomAdmin(admin.ModelAdmin):
         }),
     )
 
+    # ატვირთული ფოტოს ჩვენება
     @admin.display(description='ფოტოს წინასწარი ხედი')
     def photo_preview(self, obj):
         if not obj or not obj.photo:

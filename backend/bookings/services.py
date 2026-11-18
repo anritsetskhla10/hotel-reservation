@@ -7,14 +7,17 @@ from hotels.models import Hotel, Room
 from .models import Booking
 
 
+# საკუთარ სასტუმროში დაჯავშნის შეცდომა
 class OwnHotelBookingDenied(PermissionDenied):
     pass
 
 
+# ჯავშნის მდგომარეობასთან დაკავშირებული კონფლიქტი
 class BookingConflict(Exception):
     pass
 
 
+# თარიღების შემოწმება და ღამეების რაოდენობა
 def validate_booking_dates(check_in, check_out):
     if check_in is None or check_out is None:
         raise ValidationError(
@@ -35,6 +38,7 @@ def validate_booking_dates(check_in, check_out):
     return (check_out - check_in).days
 
 
+# პერიოდთან გადაფარული დადასტურებული ჯავშნები
 def overlapping_bookings(check_in, check_out):
     return Booking.objects.filter(
         status=Booking.Status.CONFIRMED,
@@ -43,10 +47,12 @@ def overlapping_bookings(check_in, check_out):
     )
 
 
+# კონკრეტული ნომრის დაკავებულობის შემოწმება
 def has_booking_overlap(room, check_in, check_out):
     return overlapping_bookings(check_in, check_out).filter(room=room).exists()
 
 
+# ახალი ჯავშნის შექმნა
 @transaction.atomic
 def create_booking(
     *,
@@ -63,6 +69,7 @@ def create_booking(
 
     nights = validate_booking_dates(check_in, check_out)
 
+    # ნომრის დაბლოკვა ტრანზაქციის დასრულებამდე
     try:
         room = Room.objects.select_for_update().get(pk=room_id)
     except Room.DoesNotExist:
@@ -72,6 +79,7 @@ def create_booking(
     if hotel.owner_id == user.pk:
         raise OwnHotelBookingDenied('საკუთარ სასტუმროში ნომერს ვერ დაჯავშნით.')
 
+    # ნომრისა და სასტუმროს ხელმისაწვდომობა
     if (
         not room.is_active
         or not hotel.is_active
@@ -84,6 +92,7 @@ def create_booking(
             'room': 'არჩეულ პერიოდში ნომერი უკვე დაჯავშნილია.'
         })
 
+    # მიმდინარე ფასის დაფიქსირება და ჯამის გამოთვლა
     booking = Booking(
         user=user,
         room=room,
@@ -101,6 +110,7 @@ def create_booking(
     return booking
 
 
+# ჯავშნის გაუქმება
 @transaction.atomic
 def cancel_booking(*, user, booking_id):
     if not user.is_authenticated or not user.is_active:
@@ -111,6 +121,7 @@ def cancel_booking(*, user, booking_id):
     except Booking.DoesNotExist:
         raise ValidationError({'booking': 'ჯავშანი ვერ მოიძებნა.'})
 
+    # ავტორის ან შესაბამისი უფლების მქონე ადმინისტრატორის დაშვება
     can_manage = (
         user.is_staff
         and user.has_perm('bookings.change_booking')
@@ -132,28 +143,38 @@ def cancel_booking(*, user, booking_id):
     return booking
 
 
+# მფლობელის მიერ მოთხოვნის დადასტურება ან უარყოფა
 @transaction.atomic
 def decide_booking(*, owner, booking_id, confirm):
     if not owner.is_authenticated or not owner.is_active or owner.is_staff:
         raise PermissionDenied
 
+    # მფლობელის ჯავშნისა და დაკავშირებული ობიექტების მოძებნა
     owned_bookings = Booking.objects.filter(room__hotel__owner=owner)
     room_id = owned_bookings.values_list('room_id', flat=True).get(pk=booking_id)
     room = Room.objects.select_for_update().get(pk=room_id)
     hotel = Hotel.objects.select_for_update().get(pk=room.hotel_id)
+
     if hotel.owner_id != owner.pk:
         raise Booking.DoesNotExist
+
     booking = owned_bookings.select_for_update(of=('self',)).get(
         pk=booking_id,
         room=room,
     )
 
     new_status = Booking.Status.CONFIRMED if confirm else Booking.Status.REJECTED
+
+    # განმეორებული მოქმედება იმავე შედეგს აბრუნებს
     if booking.status == new_status:
         return booking
-    if booking.status != Booking.Status.PENDING:
-        raise BookingConflict('გადაწყვეტილების მიღება მხოლოდ მოლოდინში მყოფ მოთხოვნაზეა შესაძლებელი.')
 
+    if booking.status != Booking.Status.PENDING:
+        raise BookingConflict(
+            'გადაწყვეტილების მიღება მხოლოდ მოლოდინში მყოფ მოთხოვნაზეა შესაძლებელი.'
+        )
+
+    # დადასტურებამდე ხელმისაწვდომობის ხელახლა შემოწმება
     if confirm:
         if (
             not room.is_active
@@ -161,11 +182,14 @@ def decide_booking(*, owner, booking_id, confirm):
             or hotel.publication_status != Hotel.PublicationStatus.PUBLISHED
         ):
             raise BookingConflict('ამ ნომრის დაჯავშნა მიუწვდომელია.')
+
         if booking.check_in < timezone.localdate():
             raise BookingConflict('შესვლის თარიღი უკვე გასულია.')
+
         if has_booking_overlap(room, booking.check_in, booking.check_out):
             raise BookingConflict('არჩეულ პერიოდში ნომერი უკვე დაჯავშნილია.')
 
     booking.status = new_status
     booking.save(update_fields=['status'])
+
     return booking

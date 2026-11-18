@@ -10,17 +10,20 @@ from accounts.permissions import IsSiteUser
 from .models import Hotel, HotelPhoto, Room, RoomPhoto
 
 
+# სასტუმროს ფოტოს მონაცემები
 class MyHotelPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelPhoto
         fields = ('id', 'image', 'caption', 'position')
 
 
+# არსებული ფოტოს აღწერისა და რიგითობის რედაქტირება
 class MyHotelPhotoDetailSerializer(MyHotelPhotoSerializer):
     class Meta(MyHotelPhotoSerializer.Meta):
         read_only_fields = ('image',)
 
 
+# ნომრის ფოტოს მონაცემები
 class MyRoomPhotoSerializer(MyHotelPhotoSerializer):
     class Meta(MyHotelPhotoSerializer.Meta):
         model = RoomPhoto
@@ -31,6 +34,7 @@ class MyRoomPhotoDetailSerializer(MyRoomPhotoSerializer):
         read_only_fields = ('image',)
 
 
+# სასტუმროს ფოტოების სია და ატვირთვა
 class MyHotelPhotoListCreateView(ListCreateAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -38,6 +42,7 @@ class MyHotelPhotoListCreateView(ListCreateAPIView):
     serializer_class = MyHotelPhotoSerializer
     parent_field = 'hotel'
 
+    # მომხმარებლის კუთვნილი სასტუმრო
     def get_parent_queryset(self):
         return Hotel.objects.filter(
             pk=self.kwargs['hotel_id'],
@@ -47,15 +52,20 @@ class MyHotelPhotoListCreateView(ListCreateAPIView):
     def get_queryset(self):
         return get_object_or_404(self.get_parent_queryset()).gallery.all()
 
+    # ატვირთვისას დაკავშირებული ჩანაწერის დაბლოკვა
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        self.parent = get_object_or_404(self.get_parent_queryset().select_for_update())
+        self.parent = get_object_or_404(
+            self.get_parent_queryset().select_for_update()
+        )
         return super().create(request, *args, **kwargs)
 
+    # ფოტოს შესაბამის ობიექტთან დაკავშირება
     def perform_create(self, serializer):
         serializer.save(**{self.parent_field: self.parent})
 
 
+# ნომრის ფოტოების სია და ატვირთვა
 class MyRoomPhotoListCreateView(MyHotelPhotoListCreateView):
     serializer_class = MyRoomPhotoSerializer
     parent_field = 'room'
@@ -68,6 +78,7 @@ class MyRoomPhotoListCreateView(MyHotelPhotoListCreateView):
         )
 
 
+# სასტუმროს ფოტოს ნახვა, რედაქტირება და წაშლა
 class MyHotelPhotoDetailView(RetrieveUpdateDestroyAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -75,6 +86,7 @@ class MyHotelPhotoDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = MyHotelPhotoDetailSerializer
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
+    # მხოლოდ მფლობელის სასტუმროს ფოტოები
     def get_owned_photos(self):
         return HotelPhoto.objects.filter(
             hotel_id=self.kwargs['hotel_id'],
@@ -83,8 +95,11 @@ class MyHotelPhotoDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         photos = self.get_owned_photos()
+
+        # ცვლილებისას ფოტოს ჩანაწერის დაბლოკვა
         if self.request.method in ('PATCH', 'DELETE'):
             return photos.select_for_update()
+
         return photos
 
     @transaction.atomic
@@ -96,6 +111,7 @@ class MyHotelPhotoDetailView(RetrieveUpdateDestroyAPIView):
         return super().delete(request, *args, **kwargs)
 
 
+# ნომრის ფოტოს ნახვა, რედაქტირება და წაშლა
 class MyRoomPhotoDetailView(MyHotelPhotoDetailView):
     serializer_class = MyRoomPhotoDetailSerializer
 

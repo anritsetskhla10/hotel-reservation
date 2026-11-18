@@ -3,12 +3,14 @@ from django.db import models
 
 
 class Booking(models.Model):
+    # ჯავშნის სტატუსები
     class Status(models.TextChoices):
         PENDING = 'pending', 'მოლოდინში'
         CONFIRMED = 'confirmed', 'დადასტურებული'
         REJECTED = 'rejected', 'უარყოფილი'
         CANCELLED = 'cancelled', 'გაუქმებული'
 
+    # ჯავშნის ავტორი და არჩეული ნომერი
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -19,10 +21,14 @@ class Booking(models.Model):
         on_delete=models.PROTECT,
         related_name='bookings',
     )
+
+    # ჯავშნის საკონტაქტო მონაცემები
     contact_name = models.CharField(max_length=200)
     contact_phone = models.CharField(max_length=20)
     check_in = models.DateField()
     check_out = models.DateField()
+
+    # დაჯავშნისას დაფიქსირებული ფასები
     price_per_night = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -33,6 +39,7 @@ class Booking(models.Model):
         decimal_places=2,
         editable=False,
     )
+
     status = models.CharField(
         max_length=10,
         choices=Status.choices,
@@ -47,15 +54,19 @@ class Booking(models.Model):
     )
 
     class Meta:
+        # ახალი ჯავშნები პირველ რიგში
         ordering = ['-created_at']
         verbose_name = 'ჯავშანი'
         verbose_name_plural = 'ჯავშნები'
 
         constraints = [
+            # გასვლა შესვლის შემდეგ უნდა იყოს
             models.CheckConstraint(
                 condition=models.Q(check_out__gt=models.F('check_in')),
                 name='booking_checkout_after_checkin',
             ),
+
+            # ფასები დადებითი უნდა იყოს
             models.CheckConstraint(
                 condition=models.Q(price_per_night__gt=0),
                 name='booking_nightly_price_positive',
@@ -64,6 +75,8 @@ class Booking(models.Model):
                 condition=models.Q(total_price__gt=0),
                 name='booking_total_price_positive',
             ),
+
+            # სტატუსისა და გაუქმების დროის შესაბამისობა
             models.CheckConstraint(
                 condition=(
                     models.Q(

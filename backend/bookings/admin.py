@@ -8,6 +8,7 @@ from .models import Booking
 from .services import BookingConflict, cancel_booking, create_booking
 
 
+# ჯავშნების ადმინისტრირება
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = (
@@ -24,12 +25,14 @@ class BookingAdmin(admin.ModelAdmin):
     list_select_related = ('user', 'room')
     actions = ('cancel_selected_bookings',)
 
+    # გაუქმების მოქმედების უფლება
     def has_cancel_permission(self, request):
         return (
             request.user.is_staff
             and request.user.has_perm('bookings.change_booking')
         )
 
+    # მონიშნული ჯავშნების გაუქმება
     @admin.action(
         permissions=['cancel'],
         description='არჩეული ჯავშნების გაუქმება',
@@ -39,10 +42,15 @@ class BookingAdmin(admin.ModelAdmin):
             try:
                 cancel_booking(user=request.user, booking_id=booking_id)
             except BookingConflict as error:
-                self.message_user(request, f'#{booking_id}: {error}', level=messages.WARNING)
+                self.message_user(
+                    request,
+                    f'#{booking_id}: {error}',
+                    level=messages.WARNING,
+                )
 
         self.message_user(request, 'გაუქმების მოქმედება შესრულდა.')
 
+    # ჯავშნის დამატების საკუთარი გვერდი
     def add_view(self, request, form_url='', extra_context=None):
         if not self.has_add_permission(request):
             raise PermissionDenied
@@ -54,6 +62,7 @@ class BookingAdmin(admin.ModelAdmin):
         if request.method == 'POST' and form.is_valid():
             data = form.cleaned_data
 
+            # ჯავშნის შექმნა და ადმინისტრირების ჟურნალში ჩაწერა
             try:
                 with transaction.atomic():
                     booking = create_booking(
@@ -71,6 +80,7 @@ class BookingAdmin(admin.ModelAdmin):
             else:
                 return self.response_add(request, booking)
 
+        # ფორმის შაბლონისთვის მონაცემების მომზადება
         request.current_app = self.admin_site.name
         context = {
             **self.admin_site.each_context(request),
@@ -84,8 +94,10 @@ class BookingAdmin(admin.ModelAdmin):
             context,
         )
 
+    # არსებული ჯავშნის პირდაპირი რედაქტირების შეზღუდვა
     def has_change_permission(self, request, obj=None):
         return False
 
+    # ჯავშნის წაშლის შეზღუდვა
     def has_delete_permission(self, request, obj=None):
         return False

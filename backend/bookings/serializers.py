@@ -5,6 +5,7 @@ from hotels.serializers import CitySerializer
 from .models import Booking
 
 
+# ჯავშნის მონაცემები სასტუმროსა და ნომრის ინფორმაციით
 class BookingSerializer(serializers.ModelSerializer):
     hotel_name = serializers.CharField(source='room.hotel.name', read_only=True)
     hotel_photo = serializers.ImageField(source='room.hotel.photo', read_only=True)
@@ -37,10 +38,13 @@ class BookingSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+
+# ჯავშნების ქალაქით ფილტრის შემოწმება
 class BookingListFilters(serializers.Serializer):
     city = serializers.IntegerField(required=False, min_value=1)
 
 
+# ახალი ჯავშნისთვის მიღებული მონაცემების შემოწმება
 class BookingCreateSerializer(serializers.Serializer):
     room = serializers.IntegerField(source='room_id', min_value=1)
     contact_name = serializers.CharField(max_length=200)

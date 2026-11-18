@@ -16,7 +16,7 @@ from .services import (
 )
 
 
-
+# საკუთარი ჯავშნების სია და ახალი მოთხოვნის შექმნა
 class BookingListCreateView(ListCreateAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -27,6 +27,7 @@ class BookingListCreateView(ListCreateAPIView):
             user=self.request.user,
         ).select_related('room__hotel__city')
 
+        # ქალაქის ფილტრის შემოწმება
         filters = BookingListFilters(data=self.request.query_params.dict())
         filters.is_valid(raise_exception=True)
 
@@ -36,6 +37,7 @@ class BookingListCreateView(ListCreateAPIView):
 
         return bookings
 
+    # სერიალიზერის არჩევა მოთხოვნის მეთოდით
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return BookingCreateSerializer
@@ -46,6 +48,7 @@ class BookingListCreateView(ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        # მოთხოვნის შექმნა მოლოდინის სტატუსით
         try:
             booking = create_booking(
                 user=request.user,
@@ -58,6 +61,7 @@ class BookingListCreateView(ListCreateAPIView):
                 'detail': str(error),
             }) from error
         except DjangoValidationError as error:
+            # სერვისის შეცდომის API პასუხად გარდაქმნა
             if hasattr(error, 'error_dict'):
                 detail = error.message_dict
             else:
@@ -71,6 +75,8 @@ class BookingListCreateView(ListCreateAPIView):
         ).data
         return Response(response_data, status=status.HTTP_201_CREATED)
 
+
+# ჯავშნის გაუქმება
 class BookingCancelView(GenericAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -80,13 +86,17 @@ class BookingCancelView(GenericAPIView):
         try:
             booking = cancel_booking(user=request.user, booking_id=pk)
         except BookingConflict as error:
-            return Response({'detail': str(error)}, status=status.HTTP_409_CONFLICT)
+            return Response(
+                {'detail': str(error)},
+                status=status.HTTP_409_CONFLICT,
+            )
         except (DjangoPermissionDenied, DjangoValidationError) as error:
             raise NotFound('ჯავშანი ვერ მოიძებნა.') from error
 
         return Response(self.get_serializer(booking).data)
 
 
+# მფლობელის სასტუმროებში შემოსული მოთხოვნები
 class IncomingBookingListView(ListAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -98,6 +108,7 @@ class IncomingBookingListView(ListAPIView):
         ).select_related('room__hotel__city')
 
 
+# მფლობელის მიერ დადასტურება ან უარყოფა
 class BookingDecisionView(GenericAPIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsSiteUser]
@@ -106,10 +117,17 @@ class BookingDecisionView(GenericAPIView):
 
     def post(self, request, pk):
         try:
-            booking = decide_booking(owner=request.user, booking_id=pk, confirm=self.confirm)
+            booking = decide_booking(
+                owner=request.user,
+                booking_id=pk,
+                confirm=self.confirm,
+            )
         except Booking.DoesNotExist as error:
             raise NotFound('ჯავშანი ვერ მოიძებნა.') from error
         except BookingConflict as error:
-            return Response({'detail': str(error)}, status=status.HTTP_409_CONFLICT)
+            return Response(
+                {'detail': str(error)},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         return Response(self.get_serializer(booking).data)

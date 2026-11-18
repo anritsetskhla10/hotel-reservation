@@ -5,11 +5,14 @@ from .models import City, Hotel, HotelPhoto, Room, RoomPhoto
 from bookings.services import validate_booking_dates
 
 
+# ქალაქის მონაცემები
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ('id', 'name')
 
+
+# სასტუმროს მონაცემები ქალაქის ინფორმაციით
 class HotelSerializer(serializers.ModelSerializer):
     city = CitySerializer(read_only=True)
 
@@ -18,9 +21,12 @@ class HotelSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'description', 'address', 'photo', 'city')
 
 
+# სასტუმროების ფილტრის შემოწმება
 class HotelListFilters(serializers.Serializer):
     city = serializers.IntegerField(required=False, min_value=1)
 
+
+# ნომრის მონაცემები სასტუმროსა და ქალაქის ინფორმაციით
 class RoomSerializer(serializers.ModelSerializer):
     hotel_name = serializers.CharField(source='hotel.name', read_only=True)
     city = CitySerializer(source='hotel.city', read_only=True)
@@ -48,18 +54,21 @@ class RoomSerializer(serializers.ModelSerializer):
         )
 
 
+# სასტუმროს დამატებითი ფოტო
 class HotelPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelPhoto
         fields = ('id', 'image', 'caption')
 
 
+# ნომრის დამატებითი ფოტო
 class RoomPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomPhoto
         fields = ('id', 'image', 'caption')
 
 
+# სასტუმროს დეტალები გალერეით
 class HotelDetailSerializer(HotelSerializer):
     gallery = HotelPhotoSerializer(many=True, read_only=True)
 
@@ -67,6 +76,7 @@ class HotelDetailSerializer(HotelSerializer):
         fields = HotelSerializer.Meta.fields + ('gallery',)
 
 
+# ნომრის დეტალები გალერეით
 class RoomDetailSerializer(RoomSerializer):
     gallery = RoomPhotoSerializer(many=True, read_only=True)
 
@@ -74,6 +84,7 @@ class RoomDetailSerializer(RoomSerializer):
         fields = RoomSerializer.Meta.fields + ('gallery',)
 
 
+# ნომრების ძებნის პარამეტრების შემოწმება
 class RoomListFilters(serializers.Serializer):
     sort = serializers.ChoiceField(
         choices=('price_asc', 'price_desc'),
@@ -105,12 +116,14 @@ class RoomListFilters(serializers.Serializer):
         min_price = attrs.get('min_price')
         max_price = attrs.get('max_price')
 
+        # ფასის საზღვრების შემოწმება
         if min_price is not None and max_price is not None:
             if min_price > max_price:
                 raise serializers.ValidationError({
                     'max_price': 'მაქსიმალური ფასი მინიმალურზე ნაკლებია.'
                 })
 
+        # შესვლისა და გასვლის თარიღების შემოწმება
         if 'check_in' in attrs or 'check_out' in attrs:
             validate_booking_dates(
                 attrs.get('check_in'),

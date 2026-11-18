@@ -12,6 +12,7 @@ from bookings.services import overlapping_bookings
 from .models import Hotel, Room
 
 
+# მოთხოვნილი პერიოდის შემოწმება
 class AvailabilityQuerySerializer(serializers.Serializer):
     start = serializers.DateField()
     end = serializers.DateField()
@@ -27,11 +28,13 @@ class AvailabilityQuerySerializer(serializers.Serializer):
         return attrs
 
 
+# ნომრის კალენდრის მონაცემები
 class RoomAvailabilityView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request, pk):
+        # საჯაროდ ხელმისაწვდომი ნომრის მოძებნა
         room = get_object_or_404(
             Room,
             pk=pk,
@@ -45,13 +48,16 @@ class RoomAvailabilityView(APIView):
         start = query.validated_data['start']
         end = query.validated_data['end']
 
+        # პერიოდთან გადაფარული დადასტურებული ჯავშნები
         bookings = overlapping_bookings(start, end).filter(room=room)
         booked_dates = set()
 
         for check_in, check_out in bookings.values_list('check_in', 'check_out'):
+            # ჯავშნის მოთხოვნილ პერიოდში მოქცეული ნაწილი
             day = max(start, check_in)
             last_day = min(end, check_out)
 
+            # დაკავებული ღამეები, გასვლის დღის გამოკლებით
             while day < last_day:
                 booked_dates.add(day.isoformat())
                 day += timedelta(days=1)
